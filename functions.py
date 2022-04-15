@@ -64,12 +64,47 @@ def specific_heat(array, t):
     return cv
 
 
+def entropy(sp_heat, t):
+    integrand = []
+    y_value = []
+    for i, val in enumerate(sp_heat):
+        try:
+            integrand.append((val/t[i]) * (t[i+1]-t[i]))
+            y_value.append(sum(integrand))
+        except IndexError:
+            pass
+    print(len(y_value))
+    return y_value
+
+
 def poly_fit(x, a, b, c, d):
     y_list = []
     for val in x:
         y = a + b * val + c * val ** 2 + d * val ** 3
         y_list.append(y)
     return y_list
+
+
+def inverse_square_fit(x, a, b, c):
+    y_list = []
+    for val in x:
+        y = (a / ((b * val + c)**2))
+        y_list.append(y)
+    return y_list
+
+
+def loop(array, t, time):
+    size = array.shape[0]
+    energy = [calc_energy(array)]
+    cv = [specific_heat(array, t)]
+    for _ in range(time):
+        i = int(random.random() * size)
+        j = int(random.random() * size)
+        u = calc_interaction(i, j, array)
+        array = flip_spin(i, j, u, t, array)
+        energy.append(calc_energy(array))
+        cv.append(specific_heat(array, t))
+    return energy, cv
 
 
 
