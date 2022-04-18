@@ -1,9 +1,12 @@
 import numpy as np
 import random
-from math import exp, tanh
+from math import exp, sqrt, fabs
+import matplotlib.pyplot as plt
+
+import matplotlib.animation as animation
 
 
-def calc_interaction(i, j, array):
+def calc_interaction(i, j, h, array, sym_break=False):
     # Getting the left value
     if i == 0:
         left = array[-1, j]
@@ -24,7 +27,10 @@ def calc_interaction(i, j, array):
         bottom = array[i, 0]
     else:
         bottom = array[i, j + 1]
-    ediff = 2 * array[i, j] * (top + bottom + left + right)
+    if sym_break:
+        ediff = 2 * array[i, j] * (top + bottom + left + right) - (2 * h * array[i, j])
+    else:
+        ediff = 2 * array[i, j] * (top + bottom + left + right)
     return ediff
 
 
@@ -52,15 +58,15 @@ def get_items(array):
     return size
 
 
+# Gives the energy per particle
 def calc_energy(array):
     return np.sum(array) / get_items(array)
 
 
 def specific_heat(array, t):
-    k = 1.38e-23
     e_sq_avg = np.sum(np.square(array)) / get_items(array)
     e_avg_sq = (np.sum(array) / get_items(array)) ** 2
-    cv = k * (e_sq_avg - e_avg_sq) / (t ** 2)
+    cv = (e_sq_avg - e_avg_sq) / (t ** 2)
     return cv
 
 
@@ -73,7 +79,6 @@ def entropy(sp_heat, t):
             y_value.append(sum(integrand))
         except IndexError:
             pass
-    print(len(y_value))
     return y_value
 
 
@@ -93,18 +98,92 @@ def inverse_square_fit(x, a, b, c):
     return y_list
 
 
-def loop(array, t, time):
+def magnetization(array):
+    length = get_items(array)
+    m = np.sum(array)/ length
+    m_square = np.sum(np.square(array)) / length
+    return m_square, m
+
+
+# Setting k=1
+def chi(array, t):
+    length = get_items(array)
+    m_square, m = magnetization(array)
+    susceptibility = (m_square - (m ** 2)) / t
+    return susceptibility / length
+def calc_distance(pt1, pt2):
+    d = sqrt((pt1[0] - pt2[0])**2 + (pt1[1]-pt2[1])**2)
+    return d
+
+
+def spin_spin_correlation(array):
+    length = array.shape[0]
+    _, m = magnetization(array)
+    correlation_length = []
+    for r in range(array.shape[0]):
+        counter = 0
+        values = []
+        for j in range(array.shape[0]):
+            for i in range(array.shape[1]):
+                if i+r < array.shape[0]:
+                    values.append(array[i, j] * array[i + r, j])
+                else:
+                    None
+                if i-r >= 0:
+                    values.append(array[i, j] * array[i-r, j])
+                else:
+                    None
+                if j+r < array.shape[1]:
+                    values.append(array[i, j] * array[i, j+r])
+                else:
+                    None
+                if j-1 >= 0:
+                    values.append(array[i, j] * array[i, j-r])
+                else:
+                    None
+                counter += 1
+        corr = sum(values)
+        # Will take the average of the correlation between the two points
+        correlation = corr / counter
+        # Subtracts off average magnetization
+        correlation = correlation - (m ** 2)
+        correlation_length.append((correlation, r))
+    return correlation_length
+
+
+def loop(array, t, time, hist=False):
     size = array.shape[0]
     energy = [calc_energy(array)]
     cv = [specific_heat(array, t)]
+    Chi = [chi(array, t)]
+    m_square, m = magnetization(array)
+    magnet = [m]
+    images = [array]
     for _ in range(time):
+        plt.clf()
         i = int(random.random() * size)
         j = int(random.random() * size)
-        u = calc_interaction(i, j, array)
+        u = calc_interaction(i, j, 0.1, array)
         array = flip_spin(i, j, u, t, array)
         energy.append(calc_energy(array))
         cv.append(specific_heat(array, t))
-    return energy, cv
+        Chi.append(chi(array, t))
+        m_square, m = magnetization(array)
+        magnet.append(m)
+        images.append(array)
+    if hist:
+        fig, ax = plt.subplots(2)
+        ax[0].set(xlabel='Energy', ylabel='Count')
+        ax[1].set(xlabel='Magnetization', ylabel='Count')
+        ax[0].hist(energy)
+        ax[1].hist(magnet)
+        plt.show()
+    return energy, cv, Chi, magnet
+
+# The way I have calc_energy setup it also works for the magnetization
+
+
+
 
 
 
