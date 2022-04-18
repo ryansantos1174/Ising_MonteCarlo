@@ -1,8 +1,9 @@
 import numpy as np
+from functions import *
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
-num = np.array([1,2,3,4])
-print(np.square(num))
-print(np.sum(num) ** 2)
-print(np.sum(num ^ 2))
+dipoles = create_system(100)
+
+c = spin_spin_correlation(dipoles)
+plt.plot(c[:][0], c[:][1])
+plt.show()
