@@ -59,8 +59,33 @@ def get_items(array):
 
 
 # Gives the energy per particle
-def calc_energy(array):
-    return np.sum(array) / get_items(array)
+def calc_energy(array, h=0.1):
+    energy = 0
+    for i in range(array.shape[0]):
+        for j in range(array.shape[0]):
+            if i == 0:
+                left = array[-1, j]
+            else:
+                left = array[i - 1, j]
+            # Getting right value
+            if i == array.shape[0] - 1:
+                right = array[0, j]
+            else:
+                right = array[i + 1, j]
+            # Top Value
+            if j == 0:
+                top = array[i, -1]
+            else:
+                top = array[i, j - 1]
+            # Bottom Value
+            if j == array.shape[0] - 1:
+                bottom = array[i, 0]
+            else:
+                bottom = array[i, j + 1]
+            energy += -(left * right * bottom * top) * array[i,j]
+    energy = (energy/2) - h * np.sum(array)
+    energy = energy/get_items(array)
+    return energy
 
 
 def specific_heat(array, t):
@@ -151,11 +176,12 @@ def spin_spin_correlation(array):
     return correlation_length
 
 
-def loop(array, t, time, hist=False):
+def loop(array, t, time, plot=False, hist=False, sym_break=False):
     size = array.shape[0]
     energy = [calc_energy(array)]
     cv = [specific_heat(array, t)]
     Chi = [chi(array, t)]
+    correlation = [spin_spin_correlation(array)]
     m_square, m = magnetization(array)
     magnet = [m]
     images = [array]
@@ -163,22 +189,28 @@ def loop(array, t, time, hist=False):
         plt.clf()
         i = int(random.random() * size)
         j = int(random.random() * size)
-        u = calc_interaction(i, j, 0.1, array)
+        u = calc_interaction(i, j, 0.1, array, sym_break=sym_break)
         array = flip_spin(i, j, u, t, array)
-        energy.append(calc_energy(array))
+        corr = spin_spin_correlation(array)
+        energy.append(calc_energy(array, 0))
         cv.append(specific_heat(array, t))
         Chi.append(chi(array, t))
         m_square, m = magnetization(array)
         magnet.append(m)
         images.append(array)
+        correlation.append(corr)
     if hist:
         fig, ax = plt.subplots(2)
-        ax[0].set(xlabel='Energy', ylabel='Count')
-        ax[1].set(xlabel='Magnetization', ylabel='Count')
+        ax[0].set(xlabel='Energy (T=10)', ylabel='Count (1000 sweeps)')
+        ax[1].set(xlabel='Magnetization (T=10)', ylabel='Count (1000 sweeps)')
         ax[0].hist(energy)
         ax[1].hist(magnet)
+        plt.subplots_adjust(hspace=0.2, wspace=0.2)
         plt.show()
-    return energy, cv, Chi, magnet
+    if plot:
+        plt.imshow(array)
+        plt.show()
+    return energy, cv, Chi, magnet, correlation
 
 # The way I have calc_energy setup it also works for the magnetization
 
