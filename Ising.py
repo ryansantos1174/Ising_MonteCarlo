@@ -5,17 +5,17 @@ import functions
 import numpy as np
 from scipy.optimize import curve_fit
 import os
-from functions import poly_fit, inverse_square_fit
+from functions import poly_fit, inverse_square_fit, exponential_fit
 
 if __name__ == '__main__':
-    size = 8
+    size = 20
     time = 100 * (size ** 2)
     discard_ratio = 0.8
     plot = False
-    load = True
+    load = False
     const_temp = True
     t_range = np.arange(0.1, 5, 0.1)
-    t = 10
+    t = 2.7
 
     if load:
         dipoles_orig = np.load('dipoles.npy')
@@ -23,7 +23,7 @@ if __name__ == '__main__':
         print(size)
     else:
         dipoles_orig = functions.create_system(size)
-        np.save('dipoles.npy', dipoles_orig)
+        np.save('dipoles2.npy', dipoles_orig)
         print(dipoles_orig)
     # Empty arrays that I append my plotting functions to
     energy_temp = []
@@ -35,9 +35,9 @@ if __name__ == '__main__':
     if const_temp:
         dipoles = dipoles_orig
         # The loop function runs the monte carlo simulation
-        energy, _, _, magnet, _ = functions.loop(dipoles, t, time, plot=True, hist=True, sym_break=True)
-        average_energy = sum(energy[int(time * discard_ratio):]) / len(energy[int(time * discard_ratio):])
-        energy_temp.append(average_energy)
+        _, _, _, _, correlation = functions.loop(dipoles, t, time, plot=True, hist=False, sym_break=True)
+        #average_energy = sum(energy[int(time * discard_ratio):]) / len(energy[int(time * discard_ratio):])
+        #energy_temp.append(average_energy)
         # average_cv = sum(cv[int(time * discard_ratio):]) / len(cv[int(time * discard_ratio):])
         # cv_temp.append(average_cv)
     else:
@@ -45,7 +45,7 @@ if __name__ == '__main__':
             if counter % 10 == 0:
                 print(counter)
             dipoles = dipoles_orig
-            energy, cv, Chi, magnet, _ = functions.loop(dipoles, t, time, hist=False, sym_break=False)
+            energy, cv, Chi, magnet, correlation = functions.loop(dipoles, t, time, hist=False, sym_break=False)
             average_energy = sum(energy[int(time * discard_ratio):]) / len(energy[int(time * discard_ratio):])
             energy_temp.append(average_energy)
             average_cv = sum(cv[int(time * discard_ratio):]) / len(cv[int(time * discard_ratio):])
@@ -55,7 +55,7 @@ if __name__ == '__main__':
             cv_temp.append(average_cv)
             mag.append(average_magnet)
 
-
+print(correlation)
 # Creating the Plots
 # plt.scatter(t_range, energy_temp, color='red')
 # plt.xlabel('Temperature (epsilon/K)')
@@ -91,3 +91,10 @@ if __name__ == '__main__':
 # plt.ylabel('Magnetization/ Dipole')
 # plt.show()
 # plt.savefig('./Plots/Magnetization.png')
+y_values = [item[0] for item in correlation]
+x_values = [item[1] for item in correlation]
+plt.scatter(x_values, y_values)
+popt, _ = curve_fit(exponential_fit, x_values, y_values)
+fit_y = [exponential_fit(val, popt[0], popt[1]) for val in x_values]
+plt.plot(x_values, fit_y)
+plt.show()

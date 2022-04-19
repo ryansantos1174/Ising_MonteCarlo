@@ -123,6 +123,10 @@ def inverse_square_fit(x, a, b, c):
     return y_list
 
 
+def exponential_fit(x, a, xi):
+    return a*np.exp(-x / xi)
+
+
 def magnetization(array):
     length = get_items(array)
     m = np.sum(array)/ length
@@ -181,7 +185,6 @@ def loop(array, t, time, plot=False, hist=False, sym_break=False):
     energy = [calc_energy(array)]
     cv = [specific_heat(array, t)]
     Chi = [chi(array, t)]
-    correlation = [spin_spin_correlation(array)]
     m_square, m = magnetization(array)
     magnet = [m]
     images = [array]
@@ -191,14 +194,12 @@ def loop(array, t, time, plot=False, hist=False, sym_break=False):
         j = int(random.random() * size)
         u = calc_interaction(i, j, 0.1, array, sym_break=sym_break)
         array = flip_spin(i, j, u, t, array)
-        corr = spin_spin_correlation(array)
         energy.append(calc_energy(array, 0))
         cv.append(specific_heat(array, t))
         Chi.append(chi(array, t))
         m_square, m = magnetization(array)
         magnet.append(m)
         images.append(array)
-        correlation.append(corr)
     if hist:
         fig, ax = plt.subplots(2)
         ax[0].set(xlabel='Energy (T=10)', ylabel='Count (1000 sweeps)')
@@ -210,7 +211,9 @@ def loop(array, t, time, plot=False, hist=False, sym_break=False):
     if plot:
         plt.imshow(array)
         plt.show()
-    return energy, cv, Chi, magnet, correlation
+
+    corr = spin_spin_correlation(array)
+    return energy, cv, Chi, magnet, corr
 
 # The way I have calc_energy setup it also works for the magnetization
 

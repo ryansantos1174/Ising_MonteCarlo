@@ -1,9 +1,16 @@
 import numpy as np
 from functions import *
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
-dipoles = create_system(100)
+x =[1,2,3,4]
+y=[1,4,9,16]
 
-c = spin_spin_correlation(dipoles)
-plt.plot(c[:][0], c[:][1])
-plt.show()
+
+def func(x, a):
+    return a*x**2
+
+
+popt, a = curve_fit(func, x, y)
+
+
