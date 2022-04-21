@@ -8,13 +8,11 @@ import os
 from functions import poly_fit, inverse_square_fit, exponential_fit
 
 if __name__ == '__main__':
-    size = 20
+    size = 10
     time = 100 * (size ** 2)
     discard_ratio = 0.8
-    plot = False
     load = False
-    const_temp = True
-    t_range = np.arange(0.1, 5, 0.1)
+    t_range = np.arange(0.1, 5, 0.01)
     t = 2.7
 
     if load:
@@ -26,75 +24,68 @@ if __name__ == '__main__':
         np.save('dipoles2.npy', dipoles_orig)
         print(dipoles_orig)
     # Empty arrays that I append my plotting functions to
+
     energy_temp = []
     cv_temp = []
-    xi = []
+    chi_array = []
     mag = []
     cor = []
 
-    if const_temp:
+    for counter, t in enumerate(t_range):
+        if counter % 10 == 0:
+            print(counter)
         dipoles = dipoles_orig
-        # The loop function runs the monte carlo simulation
-        _, _, _, _, correlation = functions.loop(dipoles, t, time, plot=True, hist=False, sym_break=True)
-        #average_energy = sum(energy[int(time * discard_ratio):]) / len(energy[int(time * discard_ratio):])
-        #energy_temp.append(average_energy)
-        # average_cv = sum(cv[int(time * discard_ratio):]) / len(cv[int(time * discard_ratio):])
-        # cv_temp.append(average_cv)
-    else:
-        for counter, t in enumerate(t_range):
-            if counter % 10 == 0:
-                print(counter)
-            dipoles = dipoles_orig
-            energy, cv, Chi, magnet, correlation = functions.loop(dipoles, t, time, hist=False, sym_break=False)
-            average_energy = sum(energy[int(time * discard_ratio):]) / len(energy[int(time * discard_ratio):])
-            energy_temp.append(average_energy)
-            average_cv = sum(cv[int(time * discard_ratio):]) / len(cv[int(time * discard_ratio):])
-            average_chi = sum(Chi[int(time * discard_ratio):]) / len(Chi[int(time * discard_ratio):])
-            average_magnet = sum(magnet[int(time * discard_ratio):]) / len(magnet[int(time * discard_ratio):])
-            xi.append(average_chi)
-            cv_temp.append(average_cv)
-            mag.append(average_magnet)
+        energy, cv, _, _, _ , _= functions.loop(dipoles_orig, t, time)
+        energy_sym, _, Chi, magnet, _, xi = functions.loop(dipoles_orig, t, time, sym_break=True)
+        average_energy = sum(energy[int(time*discard_ratio):])/len(energy[int(time*discard_ratio):])
+        average_magnet = sum(magnet[int(time * discard_ratio):]) / len(magnet[int(time * discard_ratio):])
+        energy_temp.append(average_energy)
+        average_cv = sum(cv[int(time*discard_ratio):])/len(cv[int(time*discard_ratio):])
+        average_chi = sum(Chi[int(time * discard_ratio):]) / len(Chi[int(time * discard_ratio):])
+        cv_temp.append(average_cv)
+        mag.append(average_magnet)
+        chi_array.append(average_chi)
+        cor.append(xi)
 
-print(correlation)
-# Creating the Plots
-# plt.scatter(t_range, energy_temp, color='red')
-# plt.xlabel('Temperature (epsilon/K)')
-# plt.ylabel('Energy/dipole')
-# plt.show()
-# plt.savefig('./Plots/E_T.png')
-# #
-# plt.scatter(t_range, cv_temp, color='red')
-# plt.xlabel('Temperature (epsilon/K)')
-# plt.ylabel('Specific Heat / Dipole')
-# plt.show()
-# plt.savefig('./Plots/cv_T.png')
-#
-# plt.scatter(t_range[1:], functions.entropy(cv_temp, t_range))
-# plt.xlabel('Temperature')
-# plt.ylabel('Entropy / Dipole')
-# plt.show()
-# plt.savefig('./Plots/S_T.png')
+    temps = [1, 2, 2.7, 4, 8]
+    for tp in temps:
+        _, _, _, _, _, _ = functions.loop(dipoles_orig, tp, time, plot=True, hist=True, sym_break=True)
+    plt.clf()
+    plt.scatter(t_range, energy_temp, color='red')
+    plt.xlabel(r'Temperature ($\epsilon / K)')
+    plt.ylabel('Energy / Dipole')
+    plt.savefig('./q1_E.png')
 
-# fig, ax = plt.subplots(2)
-# ax[0].scatter(t_range, mag, color='green' )
-# ax[1].scatter(t_range, xi, color='black')
-# plt.show()
+    plt.clf()
+    plt.scatter(t_range, cv_temp, color='red')
+    plt.xlabel(r'Temperature ($\epsilon / K)')
+    plt.ylabel('Specific Heat / Dipole')
+    plt.savefig('./q1_cv.png')
 
-# plt.scatter(t_range, xi, color='black')
-# plt.xlabel('Temperature(epsilon/K)')
-# plt.ylabel('Susceptibility')
-# plt.show()
-# plt.savefig('./Plots/Susceptibility.png')
-#
-# plt.scatter(t_range, mag, color='black')
-# plt.xlabel('Temperature(epsilon/K)')
-# plt.ylabel('Magnetization/ Dipole')
-# plt.show()
-# plt.savefig('./Plots/Magnetization.png')
-y_values = [item[0] for item in correlation]
-x_values = [item[1] for item in correlation]
-plt.scatter(x_values, y_values)
-popt, _ = curve_fit(exponential_fit, x_values, y_values)
-fit_y = [exponential_fit(val, popt[0], popt[1]) for val in x_values]
-plt.plot(x_values, fit_y)
-plt.show()
+    plt.clf()
+    plt.scatter(t_range[1:], functions.entropy(cv_temp, t_range))
+    plt.xlabel(r'Temperature ($\epsilon / K)')
+    plt.ylabel('Entropy / Dipole')
+    plt.savefig('./q1_s.png')
+
+    plt.clf()
+    plt.scatter(t_range, chi_array, color='black')
+    plt.xlabel(r'Temperature($\epsilon / K)')
+    plt.ylabel('Susceptibility')
+    plt.savefig('./Susceptibility.png')
+
+    plt.clf()
+    plt.scatter(t_range, mag, color='black')
+    plt.xlabel(r'Temperature($\epsilon / K)')
+    plt.ylabel('Magnetization/ Dipole')
+    plt.savefig('./Magnetization.png')
+
+    plt.clf()
+    plt.scatter(t_range, cor, color='black')
+    plt.xlabel(r'Temperature($\epsilon / K)')
+    plt.ylabel('Correlation Length')
+    plt.savefig('./CorrelationLength.png')
+
+
+
+

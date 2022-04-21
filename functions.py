@@ -2,6 +2,7 @@ import numpy as np
 import random
 from math import exp, sqrt, fabs
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 import matplotlib.animation as animation
 
@@ -180,6 +181,13 @@ def spin_spin_correlation(array):
     return correlation_length
 
 
+def corr_length(correlation):
+    y_values = [item[0] for item in correlation]
+    x_values = [item[1] for item in correlation]
+    popt, _ = curve_fit(exponential_fit, x_values, y_values)
+    return popt[1]
+
+
 def loop(array, t, time, plot=False, hist=False, sym_break=False):
     size = array.shape[0]
     energy = [calc_energy(array)]
@@ -201,19 +209,23 @@ def loop(array, t, time, plot=False, hist=False, sym_break=False):
         magnet.append(m)
         images.append(array)
     if hist:
+        plt.clf()
         fig, ax = plt.subplots(2)
-        ax[0].set(xlabel='Energy (T=10)', ylabel='Count (1000 sweeps)')
-        ax[1].set(xlabel='Magnetization (T=10)', ylabel='Count (1000 sweeps)')
+        ax[0].set(xlabel=f'Energy (T={t})', ylabel=f'Count (sweeps={time})')
+        ax[1].set(xlabel=f'Magnetization (T={t})', ylabel=f'Count (sweeps={time})')
         ax[0].hist(energy)
         ax[1].hist(magnet)
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
-        plt.show()
+        plt.savefig(f'./q_hist_{t}.png')
     if plot:
+        plt.clf()
         plt.imshow(array)
-        plt.show()
+        plt.title(f'Figsize = {size} x {size}')
+        plt.savefig(f'./image_{t}.png')
 
     corr = spin_spin_correlation(array)
-    return energy, cv, Chi, magnet, corr
+    xi = corr_length(corr)
+    return energy, cv, Chi, magnet, corr, xi
 
 # The way I have calc_energy setup it also works for the magnetization
 
